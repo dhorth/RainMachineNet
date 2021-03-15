@@ -17,6 +17,7 @@ namespace RainMachineNetTest
         public static int TestProgram => 3;
         public static string TestProgramName => "Test";
         public static List<int> TestZones => new List<int>{15,16 };
+        public static string DeviceCertId = "0D662453BAC4F5B5E874B4341B9E22B3270336CC";
 
     }
 }

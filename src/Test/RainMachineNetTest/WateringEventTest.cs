@@ -26,7 +26,7 @@ namespace RainMachineNetTest
         }
 
 
-        public WateringEventTest():base("WateringEventTest")
+        public WateringEventTest()
         {
             _watering=true;
         }
@@ -34,7 +34,7 @@ namespace RainMachineNetTest
         [Test]
         public async Task Subscription()
         {
-            var ret = await _rainMaker.LoginAsync(Constants.NetName, Constants.User, Constants.Password);
+            var ret = await _rainMaker.LoginAsync(Constants.NetName, Constants.User, Constants.Password, Constants.DeviceCertId);
             Assert.IsTrue(ret);
 
             var test = new WateringEventTest();
