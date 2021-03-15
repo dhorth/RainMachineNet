@@ -8,11 +8,8 @@ namespace RainMachineNet.Event
 {
     public class WateringNotificationProvider : RainMachineNotificationProviderBase<WateringEvent>
     {
-
         public WateringNotificationProvider():base("Watering")
         {
         }
-
-
     }
 }
