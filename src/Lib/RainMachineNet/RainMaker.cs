@@ -121,7 +121,6 @@ namespace RainMachineNet
                 Log.Information($"Setting polling timer to {pollingTime} seconds and enabling timer");
                 _pollingTimer.Interval= pollingTime*1000;
                 _pollingTimer.Enabled = true;
-
             }
             catch (Exception ex)
             {

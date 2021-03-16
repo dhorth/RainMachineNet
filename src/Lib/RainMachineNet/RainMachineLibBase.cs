@@ -18,7 +18,6 @@ namespace Horth.RainMachineNet
         protected string _accessToken;
 
         protected const string BaseUrl = "https://{0}:8080/api/4/";
-
         public RainMachineLibBase()
         {
         }
@@ -69,7 +68,7 @@ namespace Horth.RainMachineNet
             var response = await _client.ExecuteAsync<T>(request);
             if (response.ErrorException != null)
             {
-                var twilioException = new RainMakerExecuteException(string.IsNullOrEmpty(_accessToken), response.ErrorException);
+                var twilioException = new RainMakerExecuteException(!string.IsNullOrEmpty(_accessToken), response.ErrorException);
                 throw twilioException;
             }
             Log.Debug($"Execute Request({request.Resource}) => {response.Data!=null} ");
