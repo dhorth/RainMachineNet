@@ -8,7 +8,10 @@ namespace RainMachineNet.Event
     public interface IRainMachineEventBase
     {
     }
+<<<<<<< HEAD
 
+=======
+>>>>>>> Add project files.
     public class WateringEvent : IRainMachineEventBase
     {
         public string EventProviderName { get; set; }

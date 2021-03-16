@@ -23,7 +23,11 @@ namespace RainMachineNetTest
         [Test]
         public async Task Login()
         {
+<<<<<<< HEAD
             var rc = await _rainMaker.LoginAsync(Constants.NetName, Constants.User, Constants.Password,Constants.DeviceCertId);
+=======
+            var rc = await _rainMaker.LoginAsync(Constants.NetName, Constants.User, Constants.Password);
+>>>>>>> Add project files.
             Assert.IsTrue(rc);
         }
         [Test]
