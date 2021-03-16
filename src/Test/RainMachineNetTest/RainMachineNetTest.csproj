@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+<<<<<<< HEAD
+=======
+    <Compile Include="D:\dev\projects\RainMachine\WateringEventTest.cs" Link="WateringEventTest.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+>>>>>>> Add project files.
     <PackageReference Include="NUnit" Version="3.12.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.16.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />

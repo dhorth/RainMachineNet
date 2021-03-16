@@ -26,11 +26,7 @@ namespace RainMachineNetTest
         }
 
 
-<<<<<<< HEAD
-        public WateringEventTest()
-=======
         public WateringEventTest():base("WateringEventTest")
->>>>>>> Add project files.
         {
             _watering=true;
         }
@@ -38,11 +34,7 @@ namespace RainMachineNetTest
         [Test]
         public async Task Subscription()
         {
-<<<<<<< HEAD
-            var ret = await _rainMaker.LoginAsync(Constants.NetName, Constants.User, Constants.Password, Constants.DeviceCertId);
-=======
             var ret = await _rainMaker.LoginAsync(Constants.NetName, Constants.User, Constants.Password);
->>>>>>> Add project files.
             Assert.IsTrue(ret);
 
             var test = new WateringEventTest();
