@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using RainMachineNet;
 using RainMachineNet.Support;
 using System;
@@ -256,17 +255,6 @@ namespace RainMachineConsole
                     ret = JsonConvert.DeserializeObject<LoginCredentials>(json);
             }
             return ret;
-=======
-﻿using System;
-
-namespace RainMachineConsole
-{
-    class Program
-    {
-        static void Main(string[] args)
-        {
-            Console.WriteLine("Hello World!");
->>>>>>> Add project files.
         }
     }
 }
