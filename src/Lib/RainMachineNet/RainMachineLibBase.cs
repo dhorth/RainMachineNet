@@ -69,7 +69,11 @@ namespace Horth.RainMachineNet
             var response = await _client.ExecuteAsync<T>(request);
             if (response.ErrorException != null)
             {
+<<<<<<< HEAD
                 var twilioException = new RainMakerExecuteException(!string.IsNullOrEmpty(_accessToken), response.ErrorException);
+=======
+                var twilioException = new RainMakerExecuteException(string.IsNullOrEmpty(_accessToken), response.ErrorException);
+>>>>>>> fb67dfef655dd0f96eecc1212586267f4c44968f
                 throw twilioException;
             }
             Log.Debug($"Execute Request({request.Resource}) => {response.Data!=null} ");
