@@ -11,6 +11,8 @@
     <AssemblyVersion>0.0.1.0</AssemblyVersion>
     <FileVersion>0.0.1.0</FileVersion>
     <Version>0.0.1</Version>
+    <PackageDescription>dotNet library for control and configuration of RainMachine devices</PackageDescription>
+    <RepositoryUrl>https://github.com/dhorth/RainMachineNet</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

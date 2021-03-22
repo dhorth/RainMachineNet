@@ -64,6 +64,7 @@ namespace RainMachineConsole
             }
             catch (Exception ex)
             {
+                WriteError(ex);
             }
         }
 
@@ -102,9 +103,11 @@ namespace RainMachineConsole
             }
             catch (RainMakerLoginException ex)
             {
+                WriteError(ex);
             }
             catch (Exception ex)
             {
+                WriteError(ex);
             }
 
 
@@ -180,7 +183,15 @@ namespace RainMachineConsole
         {
             Console.WriteLine($"\x1b[1m{msg}\x1b[0m");
         }
-
+        private void WriteError(Exception ex)
+        {
+            var c = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("".PadRight(50, '-'));
+            Console.WriteLine(ex.ToString());
+            Console.WriteLine("".PadRight(50, '-'));
+            Console.ForegroundColor = c;
+        }
 
         private void Exit(int ret = 0)
         {
