@@ -7,6 +7,6 @@ namespace RainMachineNet.Responses
 {
     public class WaterLogResponse:ResponseBase
     {
-        public List<PastValue> pastValues { get; set; }
+        public List<Day> days { get; set; }
     }
 }

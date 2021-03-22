@@ -1,8 +1,10 @@
-﻿using NUnit.Framework;
+﻿using Moq;
+using NUnit.Framework;
 using RainMachineNet;
 using RainMachineNet.Event;
 using RainMachineNet.Responses;
 using RainMachineNet.Support;
+using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,6 +18,7 @@ namespace RainMachineNetTest
     public class WateringEventTest: WateringNotificationSubscriber<WateringEvent>
     {
         private IRainMaker _rainMaker;
+        private Mock<IRestClient> _mockClient;
 
         private bool _watering;
 
@@ -23,6 +26,9 @@ namespace RainMachineNetTest
         public void Setup()
         {
             _rainMaker = new RainMaker();
+            _mockClient = new Mock<IRestClient>();
+            MoqSetup.Setup(_mockClient);
+            _rainMaker.UnitTestInitialize(_mockClient.Object);
         }
 
 

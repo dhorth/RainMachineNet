@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace RainMachineNet.Support
+namespace RainMachineNet.Responses
 {
-    public class LoginResponse: RainMachineResponse
+    public class LoginResponse : ResponseBase
     {
         public string access_token { get; set; }
         public string checksum { get; set; }

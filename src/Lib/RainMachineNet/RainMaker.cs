@@ -17,6 +17,7 @@ namespace RainMachineNet
 {
     public interface IRainMaker
     {
+        void UnitTestInitialize(IRestClient client);
         Task<bool> LoginAsync(string netNaem, string userId, string pwd, string deviceId="", int pollingTimeSeconds=5);
         Task<DailyStatsResponse> DailyStats();
 
@@ -64,7 +65,7 @@ namespace RainMachineNet
         Task<ZoneResponse> GetZoneProperties(int zoneId);
         Task<ZoneAdvancedResponse> GetZonePropertiesAdvanced(int zoneId);
         Task<SimulationResponse> SimulateZone(SimulateRequest request);
-        Task<ZonesResponse> ZoneStart(int zoneId, int minutes);
+        Task<ZoneResponse> ZoneStart(int zoneId, int minutes);
         Task<ResponseBase> ZoneStop(int zoneId);
         Task<ResponseBase> ZoneStopAll();
         Task<ResponseBase> ZonePauseAll();
@@ -224,7 +225,7 @@ namespace RainMachineNet
             Log.Information($"SimulateZone()=>{response != null}");
             return response;
         }
-        public async Task<ZonesResponse> ZoneStart(int zoneId, int minutes)
+        public async Task<ZoneResponse> ZoneStart(int zoneId, int minutes)
         {
             Log.Information($"ZoneStart({zoneId},{minutes})");
             if (string.IsNullOrWhiteSpace(_accessToken))
@@ -235,7 +236,7 @@ namespace RainMachineNet
             request.AddParameter("application/json; charset=utf-8", zone.ToJson(), ParameterType.RequestBody);
             request.RequestFormat = DataFormat.Json;
             request.OnBeforeDeserialization = resp => { resp.ContentType = "application/json"; };
-            var response = await Execute<ZonesResponse>(request);
+            var response = await Execute<ZoneResponse>(request);
             Log.Information($"ZoneStart({zoneId},{minutes})=>{response != null}");
             return response;
         }
@@ -246,7 +247,7 @@ namespace RainMachineNet
                 throw new RainMakerAuthenicationException();
 
             var request = new RestRequest($"zone/{zoneId}/stop", Method.POST);
-            var response = await Execute<ZonesResponse>(request);
+            var response = await Execute<ResponseBase>(request);
             Log.Information($"ZoneStop({zoneId})=>{response != null}");
             return response;
         }
@@ -257,7 +258,7 @@ namespace RainMachineNet
                 throw new RainMakerAuthenicationException();
 
             var request = new RestRequest($"zone/stopall", Method.POST);
-            var response = await Execute<ZonesResponse>(request);
+            var response = await Execute<ResponseBase>(request);
             Log.Information($"ZoneStopAll()=>{response != null}");
             return response;
         }
@@ -268,7 +269,7 @@ namespace RainMachineNet
                 throw new RainMakerAuthenicationException();
 
             var request = new RestRequest($"zone/pauseall", Method.POST);
-            var response = await Execute<ZonesResponse>(request);
+            var response = await Execute<ResponseBase>(request);
             Log.Information($"ZonePauseAll()=>{response != null}");
             return response;
         }
@@ -317,7 +318,7 @@ namespace RainMachineNet
             if (string.IsNullOrWhiteSpace(_accessToken))
                 throw new RainMakerAuthenicationException();
 
-            var request = new RestRequest($"watering/past/{startDate.ToString("yyyy-MM-dd")}/{days}", Method.GET);
+            var request = new RestRequest($"watering/log/{startDate.ToString("yyyy-MM-dd")}/{days}", Method.GET);
             var response = await Execute<WaterLogResponse>(request);
             Log.Information($"GetWateringLog({startDate},{days})=>{response != null}");
             return response;
@@ -331,8 +332,8 @@ namespace RainMachineNet
         }
         public async Task<WaterLogResponse> GetWateringLog(int days)
         {
-            var date = DateTime.Now.AddDays(-(days - 1));
-            return await GetWateringLog(date, days - 1);
+            var date = DateTime.Now.AddDays(-days);
+            return await GetWateringLog(date, days);
         }
         public async Task<WaterLogResponse> GetWateringLog()
         {
@@ -361,8 +362,8 @@ namespace RainMachineNet
         }
         public async Task<WateringHistoryResponse> GetWateringHistory(int days)
         {
-            var date = DateTime.Now.AddDays(-(days - 1));
-            return await GetWateringHistory(date, days - 1);
+            var date = DateTime.Now.AddDays(-days);
+            return await GetWateringHistory(date, days);
         }
         public async Task<WateringHistoryResponse> GetWateringHistory()
         {
@@ -492,7 +493,7 @@ namespace RainMachineNet
                 throw new RainMakerAuthenicationException();
 
             var request = new RestRequest($"program/{programId}/start", Method.POST);
-            var response = await Execute<ZonesResponse>(request);
+            var response = await Execute<ResponseBase>(request);
             Log.Information($"ProgramStart()=>{response != null}");
             return response;
         }
@@ -503,7 +504,7 @@ namespace RainMachineNet
                 throw new RainMakerAuthenicationException();
 
             var request = new RestRequest($"program/{programId}/stop", Method.POST);
-            var response = await Execute<ZonesResponse>(request);
+            var response = await Execute<ResponseBase>(request);
             Log.Information($"ProgramStop()=>{response != null}");
             return response;
         }

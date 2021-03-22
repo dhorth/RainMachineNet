@@ -1,10 +1,17 @@
+using Moq;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using RainMachineNet;
+using RainMachineNet.Model;
 using RainMachineNet.Responses;
 using RainMachineNet.Support;
+using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,17 +20,22 @@ namespace RainMachineNetTest
     public class RainMakerTest
     {
         private IRainMaker _rainMaker;
+        private Mock<IRestClient> _mockClient;
+        public HttpClient client { get; set; }
 
 
         [SetUp]
         public void Setup()
         {
             _rainMaker = new RainMaker();
+            _mockClient = new Mock<IRestClient>();
+            MoqSetup.Setup(_mockClient);
+            _rainMaker.UnitTestInitialize(_mockClient.Object);
         }
         [Test]
         public async Task Login()
         {
-            var rc = await _rainMaker.LoginAsync(Constants.NetName, Constants.User, Constants.Password,Constants.DeviceCertId);
+            var rc = await _rainMaker.LoginAsync(Constants.NetName, Constants.User, Constants.Password, Constants.DeviceCertId);
             Assert.IsTrue(rc);
         }
         [Test]
@@ -93,14 +105,14 @@ namespace RainMachineNetTest
             var request = new SimulateRequest();
             Assert.ThrowsAsync<RainMakerAuthenicationException>(() => _rainMaker.SimulateZone(request));
         }
-        [Test]
-        public async Task SimulateBad()
-        {
-            await Login();
-            var request = new SimulateRequest();
-            var rc = await _rainMaker.SimulateZone(request);
-            Assert.AreEqual(rc.statusCode, 1);
-        }
+        //[Test]
+        //public async Task SimulateBad()
+        //{
+        //    await Login();
+        //    var request = new SimulateRequest();
+        //    var rc = await _rainMaker.SimulateZone(request);
+        //    Assert.AreEqual(rc.statusCode, 1);
+        //}
         [Test]
         public async Task Simulate()
         {
@@ -146,7 +158,7 @@ namespace RainMachineNetTest
             var rc = await _rainMaker.GetWateringStatus();
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WateringResponse>(rc, "Unexpected object type");
-            Assert.AreEqual(rc.zones.Count, Constants.ZoneCount);
+            Assert.AreEqual(Constants.ZoneCount, rc.zones.Count);
         }
         [Test]
         public void GetWateringProgramException()
@@ -160,7 +172,7 @@ namespace RainMachineNetTest
             var rc = await _rainMaker.GetWateringProgram();
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<ProgramsResponse>(rc, "Unexpected object type");
-            Assert.AreEqual(rc.programs.Count, 0);
+            Assert.AreEqual(Constants.ProgramCount, rc.programs.Count);
         }
         [Test]
         public void GetWateringQueueException()
@@ -173,8 +185,8 @@ namespace RainMachineNetTest
             await Login();
             var rc = await _rainMaker.GetWateringQueue();
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
-            Assert.IsInstanceOf<WateringResponse>(rc, "Unexpected object type");
-            Assert.AreEqual(rc.queue.Count, 0);
+            Assert.IsInstanceOf<WateringQueueResponse>(rc, "Unexpected object type");
+            Assert.AreEqual(Constants.TestZones.Count, rc.queue.Count);
             Assert.AreEqual(rc.statusCode, 0);
         }
         [Test]
@@ -198,37 +210,38 @@ namespace RainMachineNetTest
         public async Task GetWateringHistoryDays()
         {
             await Login();
-            var rc = await _rainMaker.GetWateringHistory(7);
+            var rc = await _rainMaker.GetWateringHistory(Constants.DailyStats);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WateringHistoryResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.pastValues.Count > 0, "No History Available");
+            Assert.AreEqual(rc.pastValues.Count, Constants.DailyStats);
         }
         [Test]
         public async Task GetWateringHistoryDate()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringHistory(start, end);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WateringHistoryResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.pastValues.Count > 0, "No History Available");
-            foreach (var day in rc.pastValues)
-            {
-                if (day.dateTime > DateTime.Now)
-                    Assert.IsFalse(day.used);
-            }
+            Assert.AreEqual(rc.pastValues.Count, Constants.DailyStats);
+            //Assert.IsTrue(rc.pastValues.Count > 0, "No History Available");
+            //foreach (var day in rc.pastValues)
+            //{
+            //    if (day.dateTime > DateTime.Now)
+            //        Assert.IsFalse(day.used);
+            //}
         }
         [Test]
         public async Task GetWateringHistoryDateBackwards()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringHistory(end, start);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WateringHistoryResponse>(rc, "Unexpected object type");
-
+            Assert.AreEqual(rc.pastValues.Count, Constants.DailyStats);
             Assert.IsTrue(rc.pastValues.Count > 0, "No History Available");
             foreach (var day in rc.pastValues.Where(a => a.dateTime > DateTime.Now))
                 Assert.IsFalse(day.used);
@@ -237,12 +250,12 @@ namespace RainMachineNetTest
         public async Task GetWateringHistoryDateLastMonth()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringHistory(end, start);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WateringHistoryResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.pastValues.Count > 0, "No History Available");
+            Assert.AreEqual(rc.pastValues.Count, Constants.DailyStats);
             foreach (var day in rc.pastValues)
             {
                 if (day.dateTime > DateTime.Now)
@@ -256,43 +269,43 @@ namespace RainMachineNetTest
         public async Task GetWateringLogDays()
         {
             await Login();
-            var rc = await _rainMaker.GetWateringLog(7);
+            var rc = await _rainMaker.GetWateringLog(Constants.DailyStats);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.pastValues.Count > 0, "No History Available");
+            Assert.AreEqual(rc.days.Count, Constants.DailyStats);
         }
         [Test]
         public async Task GetWateringLogDate()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringLog(start, end);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.pastValues.Count > 0, "No History Available");
+            Assert.AreEqual(rc.days.Count, Constants.DailyStats);
         }
         [Test]
         public async Task GetWateringLogDateBackwards()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringLog(end, start);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.pastValues.Count > 0, "No History Available");
+            Assert.AreEqual(rc.days.Count, Constants.DailyStats);
         }
         [Test]
         public async Task GetWateringLogDateLastMonth()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringLog(end, start);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.pastValues.Count > 0, "No History Available");
+            Assert.AreEqual(rc.days.Count, Constants.DailyStats);
         }
 
 
@@ -301,43 +314,43 @@ namespace RainMachineNetTest
         public async Task GetWateringLogDetailsDays()
         {
             await Login();
-            var rc = await _rainMaker.GetWateringLogDetails(7);
+            var rc = await _rainMaker.GetWateringLogDetails(Constants.DailyStats);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogDetailResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.waterLog.days.Count > 0, "No History Available");
+            Assert.AreEqual(rc.waterLog.days.Count, Constants.DailyStats);
         }
         [Test]
         public async Task GetWateringLogDetailsDate()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringLogDetails(start, end);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogDetailResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.waterLog.days.Count > 0, "No History Available");
+            Assert.AreEqual(rc.waterLog.days.Count, Constants.DailyStats);
         }
         [Test]
         public async Task GetWateringLogDetailsDateBackwards()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringLogDetails(end, start);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogDetailResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.waterLog.days.Count > 0, "No History Available");
+            Assert.AreEqual(rc.waterLog.days.Count, Constants.DailyStats);
         }
         [Test]
         public async Task GetWateringLogDateDetailsLastMonth()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringLogDetails(end, start);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogDetailResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.waterLog.days.Count > 0, "No History Available");
+            Assert.AreEqual(rc.waterLog.days.Count, Constants.DailyStats);
         }
 
 
@@ -346,43 +359,43 @@ namespace RainMachineNetTest
         public async Task GetWateringLogSimulatedDays()
         {
             await Login();
-            var rc = await _rainMaker.GetWateringLogSimulated(7);
+            var rc = await _rainMaker.GetWateringLogSimulated(Constants.DailyStats);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogDetailResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.waterLog.days.Count > 0, "No History Available");
+            Assert.AreEqual(rc.waterLog.days.Count, Constants.DailyStats);
         }
         [Test]
         public async Task GetWateringLogSimulatedDate()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringLogSimulated(start, end);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogDetailResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.waterLog.days.Count > 0, "No History Available");
+            Assert.AreEqual(rc.waterLog.days.Count, Constants.DailyStats);
         }
         [Test]
         public async Task GetWateringLogSimulatedDateBackwards()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringLogSimulated(end, start);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogDetailResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.waterLog.days.Count > 0, "No History Available");
+            Assert.AreEqual(rc.waterLog.days.Count, Constants.DailyStats);
         }
         [Test]
         public async Task GetWateringLogDateSimulatedLastMonth()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringLogSimulated(end, start);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogDetailResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.waterLog.days.Count > 0, "No History Available");
+            Assert.AreEqual(rc.waterLog.days.Count, Constants.DailyStats);
         }
 
 
@@ -391,43 +404,43 @@ namespace RainMachineNetTest
         public async Task GetWateringLogSimulatedDetailsDays()
         {
             await Login();
-            var rc = await _rainMaker.GetWateringLogSimulatedDetails(7);
+            var rc = await _rainMaker.GetWateringLogSimulatedDetails(Constants.DailyStats);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogDetailResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.waterLog.days.Count > 0, "No History Available");
+            Assert.AreEqual(rc.waterLog.days.Count, Constants.DailyStats);
         }
         [Test]
         public async Task GetWateringLogSimulatedDetailsDate()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringLogSimulatedDetails(start, end);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogDetailResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.waterLog.days.Count > 0, "No History Available");
+            Assert.AreEqual(rc.waterLog.days.Count, Constants.DailyStats);
         }
         [Test]
         public async Task GetWateringLogSimulatedDetailsDateBackwards()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringLogSimulatedDetails(end, start);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogDetailResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.waterLog.days.Count > 0, "No History Available");
+            Assert.AreEqual(rc.waterLog.days.Count, Constants.DailyStats);
         }
         [Test]
         public async Task GetWateringLogDateSimulatedDetailsLastMonth()
         {
             await Login();
-            var start = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-1);
-            var end = start.AddMonths(1).AddDays(-1);
+            var start = DateTime.Now;
+            var end = start.AddDays(Constants.DailyStats);
             var rc = await _rainMaker.GetWateringLogSimulatedDetails(end, start);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<WaterLogDetailResponse>(rc, "Unexpected object type");
-            Assert.IsTrue(rc.waterLog.days.Count > 0, "No History Available");
+            Assert.AreEqual(rc.waterLog.days.Count, Constants.DailyStats);
         }
 
 
@@ -464,7 +477,7 @@ namespace RainMachineNetTest
             await Login();
             for (int i = 1; i <= Constants.ProgramCount; i++)
             {
-                var rc = await _rainMaker.ProgramStart(Constants.TestProgram);
+                var rc = await _rainMaker.ProgramStart(i);
                 Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
                 Assert.AreEqual(rc.statusCode, 0);
             }
@@ -475,7 +488,7 @@ namespace RainMachineNetTest
             await Login();
             for (int i = 1; i <= Constants.ProgramCount; i++)
             {
-                var rc = await _rainMaker.ProgramStop(Constants.TestProgram);
+                var rc = await _rainMaker.ProgramStop(i);
                 Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
                 Assert.AreEqual(rc.statusCode, 0);
             }
@@ -508,10 +521,12 @@ namespace RainMachineNetTest
         public async Task ZoneStart()
         {
             await Login();
-            var rc = await _rainMaker.ZoneStart(16, 2);
-            Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
-            Assert.IsInstanceOf<ZonesResponse>(rc, "Unexpected object type");
-            Assert.AreEqual(rc.statusCode, 0);
+            for (int i = 1; i <= Constants.ZoneCount; i++)
+            {
+                var rc = await _rainMaker.ZoneStart(i,i);
+                Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
+                Assert.AreEqual(rc.statusCode, 0);
+            }
         }
         [Test]
         public async Task ZoneStop()
@@ -546,7 +561,7 @@ namespace RainMachineNetTest
             await _rainMaker.ProgramStop(Constants.TestProgram);
             Assert.IsInstanceOf<IResponseBase>(rc, "Unexpected object type");
             Assert.IsInstanceOf<ProgramsResponse>(rc, "Unexpected object type");
-            Assert.AreEqual(rc.programs.Count, Constants.TestZones.Count);
+            Assert.AreEqual(rc.programs.Count, Constants.ProgramCount);
         }
         [Test]
         public async Task GetWateringQueueActive()

@@ -1,4 +1,5 @@
 ﻿using RainMachineNet.Requests;
+using RainMachineNet.Responses;
 using RainMachineNet.Support;
 using RestSharp;
 using RestSharp.Authenticators;
@@ -24,6 +25,11 @@ namespace Horth.RainMachineNet
         public void Initialize(string netName, string deviceCertId)
         {
             Log.Debug($"Initialize({netName}) Rest client to communicate with local device");
+            if(_client!=null)
+            {
+                Log.Information($"Already have a restclient skipping initialization");
+                return;
+            }
             _client = new RestClient(string.Format(BaseUrl, netName));
             _client.RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) =>
             {
@@ -42,7 +48,13 @@ namespace Horth.RainMachineNet
             };
             Log.Debug($"Initialize({netName}) complete");
         }
-        public async Task<T> Execute<T>(string endPoint, RequestBase request) where T : new()
+        public void UnitTestInitialize(IRestClient client)
+        {
+            Log.Debug($"UnitTestInitialize({client.BaseUrl}) Rest client to communicate with local device");
+            _client=client;
+            Log.Debug($"UnitTestInitialize({client.BaseUrl}) complete");
+        }
+        public async Task<T> Execute<T>(string endPoint, RequestBase request) where T : IResponseBase, new()
         {
             Log.Debug($"Execute({endPoint}) helper");
             var restRequest = new RestRequest(endPoint, Method.POST);
@@ -52,7 +64,7 @@ namespace Horth.RainMachineNet
             return await Execute<T>(restRequest);
         }
 
-        public async Task<T> Execute<T>(RestRequest request) where T : new()
+        public async Task<T> Execute<T>(RestRequest request) where T : IResponseBase, new()
         {
             Log.Debug($"Execute Request({request.Resource}) ");
             if (!string.IsNullOrEmpty(_accessToken))
